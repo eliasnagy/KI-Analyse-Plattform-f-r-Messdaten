@@ -19,7 +19,7 @@ class FraesenDataset(Dataset):
         
         # Lade die Zieldaten (Verschleiß)
         # Angenommen die CSV hat Spalten wie: 'datei_name', 'verschleiss_wert'
-        wear_df = pd.read_csv(wear_datei)
+        wear_df = pd.read_csv(wear_datei).head(3)
         
         # Iteriere über jede Fräsung (jeden Eintrag in der wear.csv)
         for index, row in wear_df.iterrows():
