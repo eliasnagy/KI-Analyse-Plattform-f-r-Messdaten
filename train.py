@@ -4,7 +4,7 @@ import torch.optim as optim
 
 # Hier importierst du deine eigene Klasse aus dem anderen Skript
 # (Angenommen, du hast das Dataloader-Skript 'daten_loader.py' genannt)
-from daten_loader import FraesenDataset, DataLoader 
+from data_loader import FraesenDataset, DataLoader 
 
 # ==========================================
 # 1. Das KI-Modell definieren (Das "Gehirn")
