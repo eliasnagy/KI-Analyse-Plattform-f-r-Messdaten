@@ -4,6 +4,10 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
+
+#WARNUNG: NICHT AUF LAPTOP AUSFÜHREN lol
+
+
 class FraesenDataset(Dataset):
     def __init__(self, sensor_ordner, wear_datei, fenster_groesse=1024, schritt_weite=512):
         """
@@ -19,23 +23,29 @@ class FraesenDataset(Dataset):
         
         # Iteriere über jede Fräsung (jeden Eintrag in der wear.csv)
         for index, row in wear_df.iterrows():
-            datei_name = row['datei_name']
-            verschleiss = float(row['verschleiss_wert'])
             
+            # 1. Dateinamen sauber zusammenbauen (c_1_001.csv etc.)
+            datei_nummer = index + 1 
+            datei_name = f"c_1_{int(datei_nummer):03d}.csv" 
             datei_pfad = os.path.join(sensor_ordner, datei_name)
+            
+            # 2. HIER HAT DIE VARIABLE GEFEHLT: Verschleiß auslesen!
+            # Wichtig: 'flute_1' durch deinen echten Spaltennamen ersetzen
+            verschleiss = float(row['flute_1']) 
+            
+            # 3. Prüfen, ob die Datei existiert
             if not os.path.exists(datei_pfad):
+                print(f"Warnung: Datei nicht gefunden -> {datei_pfad}")
                 continue
                 
-            # Lade die 7 Spalten der aktuellen Sensor-CSV
-            # Spalten: Force X/Y/Z, Vib X/Y/Z, AE-RMS
+            # 4. Sensordaten laden 
             sensor_daten = pd.read_csv(datei_pfad).values 
             
-            # Schneide die langen Sensordaten in kleine, überlappende Fenster
+            # 5. Daten in Fenster schneiden und speichern
             for start_idx in range(0, len(sensor_daten) - fenster_groesse, schritt_weite):
                 fenster = sensor_daten[start_idx : start_idx + fenster_groesse]
-                
                 self.daten_fenster.append(fenster)
-                self.labels.append(verschleiss)
+                self.labels.append(verschleiss)  # Hier wird 'verschleiss' jetzt gefunden!
                 
         # Konvertiere die gesammelten Listen in schnelle PyTorch Tensoren
         self.daten_fenster = torch.tensor(np.array(self.daten_fenster), dtype=torch.float32)
@@ -58,8 +68,8 @@ class FraesenDataset(Dataset):
 
 # 1. Datensatz initialisieren
 mein_datensatz = FraesenDataset(
-    sensor_ordner='./daten/sensoren', 
-    wear_datei='./daten/wear.csv',
+    sensor_ordner='./daten/c1', 
+    wear_datei='./daten/c1_wear.csv',
     fenster_groesse=1024, # Das Netz sieht 1024 Messpunkte gleichzeitig
     schritt_weite=512     # Das nächste Fenster überlappt zur Hälfte
 )
