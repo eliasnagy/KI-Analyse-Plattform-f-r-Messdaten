@@ -2,4 +2,4 @@
 /.venv
 /daten
 *.zip
-
+*.pth
