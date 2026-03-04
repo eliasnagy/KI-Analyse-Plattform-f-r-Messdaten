@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import ConcatDataset
 
 # Hier importierst du deine eigene Klasse aus dem anderen Skript
 # (Angenommen, du hast das Dataloader-Skript 'daten_loader.py' genannt)
@@ -48,6 +49,13 @@ class VerschleissCNN(nn.Module):
 # 2. Vorbereitung für das Training
 # ==========================================
 
+# --- TRAININGS-DATEN ---
+# 1. Alle Trainings-Datensätze einzeln laden
+train_c1 = FraesenDataset('./daten/c1', './daten/c1_wear.csv', fenster_groesse=1024, schritt_weite=5000)
+train_c4 = FraesenDataset('./daten/c4', './daten/c4_wear.csv', fenster_groesse=1024, schritt_weite=5000)
+
+datensatz_train = ConcatDataset([train_c1, train_c4])
+
 # Hardware-Check: CPU (Laptop) oder GPU (Jetson Orin)?
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training läuft auf: {device}")
@@ -62,15 +70,15 @@ fehler_funktion = nn.MSELoss()
 optimizer = optim.Adam(modell.parameters(), lr=0.001)
 
 # Dataloader holen (hier mit den Werten für deinen Laptop-Test)
-datensatz = FraesenDataset('./daten/c1', './daten/wear.csv', fenster_groesse=1024, schritt_weite=5000)
-train_loader = DataLoader(datensatz, batch_size=32, shuffle=True)
+datensatz = FraesenDataset('./daten/c1', './daten/c1_wear.csv', fenster_groesse=1024, schritt_weite=5000)
+train_loader = DataLoader(datensatz_train, batch_size=32, shuffle=True)
 
 
 # ==========================================
 # 3. Die Trainings-Schleife (Training Loop)
 # ==========================================
 
-epochen = 5 # Wie oft schaut sich die KI den kompletten Datensatz an?
+epochen = 50 # Wie oft schaut sich die KI den kompletten Datensatz an?
 
 for epoche in range(epochen):
     modell.train()
