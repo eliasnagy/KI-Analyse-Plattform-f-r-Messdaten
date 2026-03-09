@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import ConcatDataset
 
 # Hier importierst du deine eigene Klasse aus dem anderen Skript
 # (Angenommen, du hast das Dataloader-Skript 'daten_loader.py' genannt)
-from daten_loader import FraesenDataset, DataLoader 
+from data_loader import FraesenDataset, DataLoader 
 
 # ==========================================
 # 1. Das KI-Modell definieren (Das "Gehirn")
@@ -44,6 +45,7 @@ class VerschleissCNN(nn.Module):
         x = self.fc2(x)
         return x
 
+
 # ==========================================
 # 2. Vorbereitung für das Training
 # ==========================================
@@ -51,6 +53,19 @@ class VerschleissCNN(nn.Module):
 # Hardware-Check: CPU (Laptop) oder GPU (Jetson Orin)?
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training läuft auf: {device}")
+
+
+# --- TRAININGS-DATEN --- (c1, c4)
+# 1. Alle Trainings-Datensätze einzeln laden
+train_c1 = FraesenDataset('./daten/c1', './daten/c1_wear.csv', fenster_groesse=1024, schritt_weite=5000)
+train_c4 = FraesenDataset('./daten/c4', './daten/c4_wear.csv', fenster_groesse=1024, schritt_weite=5000)
+
+datensatz_train = ConcatDataset([train_c1, train_c4])
+train_loader = DataLoader(datensatz_train, batch_size=32, shuffle=True)
+
+# --- VALIDIERUNGS-DATEN --- (c6)
+datensatz_val = FraesenDataset('./daten/c6', './daten/c6_wear.csv', fenster_groesse=1024)
+val_loader = DataLoader(datensatz_val, batch_size=32, shuffle=False)
 
 # Modell erstellen und auf die Hardware schieben
 modell = VerschleissCNN().to(device)
@@ -61,21 +76,20 @@ fehler_funktion = nn.MSELoss()
 # Der "Lern-Algorithmus" (Adam ist der Goldstandard)
 optimizer = optim.Adam(modell.parameters(), lr=0.001)
 
-# Dataloader holen (hier mit den Werten für deinen Laptop-Test)
-datensatz = FraesenDataset('./daten/c1', './daten/wear.csv', fenster_groesse=1024, schritt_weite=5000)
-train_loader = DataLoader(datensatz, batch_size=32, shuffle=True)
-
 
 # ==========================================
 # 3. Die Trainings-Schleife (Training Loop)
 # ==========================================
 
-epochen = 5 # Wie oft schaut sich die KI den kompletten Datensatz an?
+epochen = 100 # Wie oft schaut sich die KI den kompletten Datensatz an?
 
 for epoche in range(epochen):
     modell.train()
-    laufender_fehler = 0.0
-    
+    train_fehler_summe = 0.0
+
+    # ==============================
+    # TRAINING (c1, c4)
+    # ==============================
     for batch_idx, (sensordaten, wahrer_verschleiss) in enumerate(train_loader):
         
         # 1. Daten auf die GPU/CPU schieben!
@@ -95,8 +109,49 @@ for epoche in range(epochen):
         fehler.backward()
         optimizer.step()
         
-        laufender_fehler += fehler.item()
-        
-    print(f"Epoche {epoche+1}/{epochen} | Durchschnittlicher Fehler: {laufender_fehler/len(train_loader):.4f}")
+        train_fehler_summe += fehler.item()
+    
+    durchschnitt_train = train_fehler_summe / len(train_loader)
 
-print("Training beendet!")
+    # ==============================
+    # VALIDIERUNG (c6)
+    # ==============================
+    modell.eval() # WICHTIG: Schaltet das Lernen aus! (Einfrieren)
+    val_fehler_summe = 0.0
+    
+    with torch.no_grad(): # WICHTIG: Spart Speicher, da wir keine Gradienten fürs Lernen brauchen
+        for sensordaten_val, wahrer_verschleiss_val in val_loader: # 2. INNERE SCHLEIFE
+            sensordaten_val, wahrer_verschleiss_val = sensordaten_val.to(device), wahrer_verschleiss_val.to(device)
+            
+            vorhersage_val = modell(sensordaten_val)
+            fehler_val = fehler_funktion(vorhersage_val, wahrer_verschleiss_val)
+            # KEIN fehler.backward() und KEIN optimizer.step() hier!
+            
+            val_fehler_summe += fehler_val.item()
+            
+    durchschnitt_val = val_fehler_summe / len(val_loader)
+ 
+    print(f"Epoche {epoche+1}/{epochen} | Train-Fehler: {durchschnitt_train:.4f} | c6-Test-Fehler: {durchschnitt_val:.4f}")
+
+torch.save(modell.state_dict(), "mein_verschleiss_modell.pth")
+print("Training beendet, Modell gespeichert!")
+
+
+
+
+# =====================================
+# nur für Jetson Orin
+# =====================================
+"""
+modell = VerschleissCNN()
+modell.load_state_dict(torch.load("mein_verschleiss_modell.pth"))
+modell.to(device)
+modell.eval()
+"""
+
+# export für TensorRT: 
+"""
+dummy_input = torch.randn(1, 7, 1024, device=device) 
+
+torch.onnx.export(modell, dummy_input, "verschleiss_modell.onnx", input_names=['sensordaten'], output_names=['verschleiss'])
+"""
