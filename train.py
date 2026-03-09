@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import ConcatDataset
+from torch.utils.data import ConcatDataset, DataLoader
 
 # Hier importierst du deine eigene Klasse aus dem anderen Skript
 # (Angenommen, du hast das Dataloader-Skript 'daten_loader.py' genannt)
-from data_loader import FraesenDataset, DataLoader 
+from data_loader import FraesenDataset
 
 # ==========================================
 # 1. Das KI-Modell definieren (Das "Gehirn")
