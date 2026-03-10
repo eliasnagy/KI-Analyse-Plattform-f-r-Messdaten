@@ -171,3 +171,4 @@ print(f"Durchschnittlicher Fehler: {np.mean(abweichung):.4f}")
 dummy_input = torch.randn(1, 7, 1024, device=device)
 torch.onnx.export(modell, dummy_input, "verschleiss_modell.onnx", input_names=['sensordaten'], output_names=['verschleiss'])
 """
+#test
