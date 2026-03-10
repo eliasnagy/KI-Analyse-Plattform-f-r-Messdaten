@@ -49,9 +49,9 @@ class Trainer:
 
         if model_type == "RandomForest":
             model = RandomForestModel(n_estimators=Config.RF_N_ESTIMATORS, max_depth=Config.RF_MAX_DEPTH)
-            model.fit(X_train, y_train)
-            train_predictions = model.predict(X_train)
-            test_predictions = model.predict(X_test)
+            model.fit(X_train_scaled, y_train)
+            train_predictions = model.predict(X_train_scaled)
+            test_predictions = model.predict(X_test_scaled)
 
         elif model_type == "MLP":
             hidden = tuple(int(x) for x in Config.MLP_HIDDEN_LAYERS.split(",") if x.strip() != "")
