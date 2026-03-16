@@ -25,8 +25,8 @@ modell.load_state_dict(checkpoint['modell_gewichte'])
 modell.eval() # WICHTIG: Schaltet Dropout und BatchNorm in den Vorhersage-Modus!
 
 # Normalisierungswerte aus dem Training extrahieren
-train_mean = checkpoint['train_mean'].numpy()
-train_std = checkpoint['train_std'].numpy()
+train_mean = checkpoint['train_mean'].cpu().numpy()
+train_std = checkpoint['train_std'].cpu().numpy()
 
 # --- 3. LIVE-DATEN LADEN ---
 # In deiner inference.py:
