@@ -134,7 +134,13 @@ for epoche in range(epochen):
     # ==============================
     if durchschnitt_val < beste_val_fehler:
         beste_val_fehler = durchschnitt_val
-        torch.save(modell.state_dict(), "bestes_modell.pth")
+        
+        torch.save({
+            'modell_gewichte': modell.state_dict(),
+            'train_mean': train_mean,
+            'train_std': train_std
+        }, "bestes_modell_komplett.pth")
+        
         geduld_zaehler = 0
         print(f"  --> Neues bestes Modell gespeichert! Val-Fehler: {beste_val_fehler:.4f}")
     else:
