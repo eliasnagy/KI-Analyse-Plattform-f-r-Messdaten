@@ -59,8 +59,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training läuft auf: {device}")
 
 # --- TRAININGS-DATEN --- (c1, c4)
-train_c1 = FraesenDataset('./daten/c1', window_size=1024, step_size=1024)
-train_c4 = FraesenDataset('./daten/c4', window_size=1024, step_size=1024)
+train_c1 = FraesenDataset('./trainings_daten/c1', window_size=1024, step_size=1024)
+train_c4 = FraesenDataset('./trainings_daten/c4', window_size=1024, step_size=1024)
 
 # Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
 # Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
@@ -75,13 +75,7 @@ train_loader = DataLoader(datensatz_train, batch_size=256, shuffle=True, num_wor
 
 # --- VALIDIERUNGS-DATEN --- (c6)
 # WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
-datensatz_val = FraesenDataset(
-    './daten/c6', 
-    window_size=1024, 
-    step_size=1024,
-    global_mean=train_mean,   # <-- NEU
-    global_std=train_std       # <-- NEU
-)
+datensatz_val = FraesenDataset('./trainings_daten/c6', window_size=1024, step_size=1024, global_mean=train_mean, global_std=train_std)
 val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
 
 

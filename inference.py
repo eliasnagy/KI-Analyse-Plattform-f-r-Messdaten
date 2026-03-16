@@ -8,7 +8,7 @@ from train import VerschleissCNN
 
 # --- 1. KONFIGURATION ---
 MODELL_PFAD = "bestes_modell_komplett.pth"
-LIVE_DATEN_ORDNER = "./daten/live_produktion"  # Ordner mit den neuen CSVs von der Maschine
+LIVE_DATEN_ORDNER = "./live_daten/c2"  # Ordner mit den neuen CSVs von der Maschine
 FENSTER_GROESSE = 1024
 
 # Orin auf Höchstleistung prüfen
@@ -74,9 +74,9 @@ print(f"Durchschnittlich geschätzter Verschleiß: {durchschnittlicher_verschlei
 print(f"Maximal geschätzter Verschleiß:        {maximaler_verschleiss:.4f}")
 
 # Optional: Alarm schlagen, wenn ein Grenzwert überschritten wird
-GRENZWERT = 100.0 # Passe diesen Wert an deine Einheit an
+GRENZWERT = 10.0 # Passe diesen Wert an deine Einheit an
 if maximaler_verschleiss > GRENZWERT:
-    print("\nALARM: Kritischer Werkzeugverschleiß erkannt! Maschine stoppen! ⚠️")
+    print("\nALARM: Kritischer Werkzeugverschleiß erkannt! Maschine stoppen!")
 
 # Ergebnisse als CSV speichern
 ergebnis_df = pd.DataFrame({
