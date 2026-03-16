@@ -15,29 +15,35 @@ class VerschleissCNN(nn.Module):
     def __init__(self):
         super(VerschleissCNN, self).__init__()
         
-        # 1. Faltungsschicht
+        # 1. Block
         self.conv1 = nn.Conv1d(in_channels=7, out_channels=32, kernel_size=5, padding=2)
-        self.bn1 = nn.BatchNorm1d(32)        # Stabilisiert das Training
+        self.bn1 = nn.BatchNorm1d(32)
         self.relu1 = nn.ReLU()
         self.pool1 = nn.MaxPool1d(kernel_size=2)
         
-        # 2. Faltungsschicht
+        # 2. Block
         self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=5, padding=2)
         self.bn2 = nn.BatchNorm1d(64)
         self.relu2 = nn.ReLU()
         self.pool2 = nn.MaxPool1d(kernel_size=2)
         
+        # --- DER OVERFITTING KILLER ---
+        # Komprimiert die 256 verbleibenden Zeitschritte auf exakt 1 Wert pro Kanal
+        self.global_pool = nn.AdaptiveAvgPool1d(1) 
+        
         self.flatten = nn.Flatten()
         
-        # 3. Lineare Schichten
-        self.fc1 = nn.Linear(64 * 256, 128)
-        self.dropout = nn.Dropout(p=0.5)     # "Vergisst" 50% der Neuronen zufällig
+        # 3. Lineare Schichten (Jetzt winzig und robust!)
+        # Wir kommen mit 64 Werten an und gehen auf 32. 
+        self.fc1 = nn.Linear(64, 32)
+        self.dropout = nn.Dropout(p=0.5)
         self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(128, 1)
+        self.fc2 = nn.Linear(32, 1)
 
     def forward(self, x):
         x = self.pool1(self.relu1(self.bn1(self.conv1(x))))
         x = self.pool2(self.relu2(self.bn2(self.conv2(x))))
+        x = self.global_pool(x)  # <-- NEU
         x = self.flatten(x)
         x = self.dropout(self.relu3(self.fc1(x)))
         x = self.fc2(x)
