@@ -70,10 +70,10 @@ train_loader = DataLoader(datensatz_train, batch_size=256, shuffle=True, num_wor
 # WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
 datensatz_val = FraesenDataset(
     './daten/c6', 
-    fenster_groesse=1024, 
-    schritt_weite=1024,
-    globaler_mean=train_mean,   # <-- NEU
-    globale_std=train_std       # <-- NEU
+    window_size=1024, 
+    step_size=1024,
+    global_mean=train_mean,   # <-- NEU
+    global_std=train_std       # <-- NEU
 )
 val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
 
