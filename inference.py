@@ -74,7 +74,7 @@ print(f"Durchschnittlich geschätzter Verschleiß: {durchschnittlicher_verschlei
 print(f"Maximal geschätzter Verschleiß:        {maximaler_verschleiss:.4f}")
 
 # Optional: Alarm schlagen, wenn ein Grenzwert überschritten wird
-GRENZWERT = 10.0 # Passe diesen Wert an deine Einheit an
+GRENZWERT = 100.0 # Passe diesen Wert an deine Einheit an
 if maximaler_verschleiss > GRENZWERT:
     print("\nALARM: Kritischer Werkzeugverschleiß erkannt! Maschine stoppen!")
 
