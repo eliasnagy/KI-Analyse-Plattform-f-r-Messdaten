@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import ConcatDataset, DataLoader
+from torch.serialization import safe_globals
 import pandas as pd
 import numpy as np
 
@@ -162,8 +163,14 @@ print("Training beendet!")
 # 4. Vorhersagen als CSV speichern
 # ==========================================
 
-# Bestes Modell laden (nicht das letzte!)
-modell.load_state_dict(torch.load("bestes_modell.pth"))
+# Modell laden
+with safe_globals([np.core.multiarray._reconstruct, np.ndarray, np.dtype, np.dtype('float32').type]):
+    checkpoint = torch.load("bestes_modell.pth", weights_only=True)
+
+modell.load_state_dict(checkpoint['modell_gewichte'])
+train_mean = checkpoint['train_mean']
+train_std = checkpoint['train_std']
+
 modell.eval()
 
 alle_vorhersagen = []
