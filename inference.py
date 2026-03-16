@@ -7,7 +7,7 @@ from data_loader import FraesenDataset
 from train import VerschleissCNN
 
 # --- 1. KONFIGURATION ---
-MODELL_PFAD = "bestes_modell_komplett.pth"
+MODELL_PFAD = "bestes_modell.pth"
 LIVE_DATEN_ORDNER = "./live_daten/c2"  # Ordner mit den neuen CSVs von der Maschine
 FENSTER_GROESSE = 1024
 
@@ -29,13 +29,14 @@ train_mean = checkpoint['train_mean']
 train_std = checkpoint['train_std']
 
 # --- 3. LIVE-DATEN LADEN ---
-print(f"Lese Sensordaten aus {LIVE_DATEN_ORDNER}...")
+# In deiner inference.py:
 live_dataset = FraesenDataset(
-    sensor_ordner=LIVE_DATEN_ORDNER, 
-    fenster_groesse=FENSTER_GROESSE, 
-    schritt_weite=FENSTER_GROESSE, # Wir springen Fenster für Fenster
-    globaler_mean=train_mean,      # Hier übergeben wir die gespeicherten Werte!
-    globale_std=train_std
+    sensor_folder=LIVE_DATEN_ORDNER, 
+    window_size=1024, 
+    step_size=1024, 
+    global_mean=train_mean,      
+    global_std=train_std,
+    is_inference=True
 )
 
 # pin_memory=True und num_workers=4 machen den Jetson hier wieder extrem schnell

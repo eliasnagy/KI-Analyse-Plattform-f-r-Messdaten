@@ -6,12 +6,12 @@ from torch.utils.data import Dataset
 import glob
 
 class FraesenDataset(Dataset):
-    def __init__(self, sensor_folder, window_size=1024, step_size=512, global_mean=None, global_std=None):
+    def __init__(self, sensor_folder, window_size=1024, step_size=512, global_mean=None, global_std=None, is_inference=False):
         self.sensor_folder = sensor_folder
         self.window_size = window_size
         self.step_size = step_size
+        self.is_inference = is_inference  # <-- NEU: Schalter merken
         
-        # Eindeutiger Name für die Cache-Datei im jeweiligen Ordner
         folder_name = os.path.basename(os.path.normpath(sensor_folder))
         self.cache_file = os.path.join(sensor_folder, f"cache_{folder_name}_w{window_size}_s{step_size}.pt")
         
@@ -19,56 +19,31 @@ class FraesenDataset(Dataset):
         self.index_map = []
         self.has_labels = False
         
-        # 1. Daten laden (entweder blitzschnell aus dem Cache oder frisch aus CSVs)
         self._load_or_build_data()
-        
-        # 2. Normalisierung anwenden (Z-Score)
         self._normalize(global_mean, global_std)
 
-
-
-    def _detect_wear_file(self):
-        """Sucht automatisch die passende Wear-Datei im übergeordneten Verzeichnis oder im selben Ordner."""
-        csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
-        if not csv_files:
-            return None
-        
-        # Beispiel: "c_1_001.csv" -> ["c", "1", "001"] -> cutter_id = "c1"
-        parts = csv_files[0].replace('.csv', '').split('_')
-        if len(parts) < 2: return None
-        
-        cutter_id = f"{parts[0]}{parts[1]}" 
-        wear_filename = f"{cutter_id}_wear.csv"
-        
-        # Suche im aktuellen Ordner oder im übergeordneten Ordner
-        path_current = os.path.join(self.sensor_folder, wear_filename)
-        path_parent = os.path.join(os.path.dirname(self.sensor_folder), wear_filename)
-        
-        if os.path.exists(path_current): return path_current
-        if os.path.exists(path_parent): return path_parent
-        return None
-
-
+    # ... (_detect_wear_file bleibt exakt wie es ist) ...
 
     def _load_or_build_data(self):
-        """Lädt die Cache-Datei oder verarbeitet die CSVs und erstellt einen Cache."""
         if os.path.exists(self.cache_file):
             try:
-                print(f"Lade blitzschnell aus Cache: {self.cache_file}")
-                cache = torch.load(self.cache_file)
-                self.raw_files = cache['raw_files']
-                self.index_map = cache['index_map']
-                self.has_labels = cache['has_labels']
+                # ... (Dein bisheriger Cache-Lade Code) ...
                 return
             except Exception as e:
-                print(f"⚠️ Cache-Datei scheint beschädigt zu sein ({e}). Erstelle Cache neu...")
-                # Die kaputte Datei löschen
                 os.remove(self.cache_file)
 
         print(f"Erstelle neuen Cache für Ordner: {self.sensor_folder} ...")
-        wear_file = self._detect_wear_file()
-        self.has_labels = wear_file is not None
+        
+        # --- NEU: HIER WIRD DER SCHALTER BENUTZT ---
+        if self.is_inference:
+            print("  ℹ Inferenz-Modus aktiv: Suche nicht nach Labels.")
+            self.has_labels = False
+            wear_file = None
+        else:
+            wear_file = self._detect_wear_file()
+            self.has_labels = wear_file is not None
 
+        # ... (Ab hier geht dein bisheriger Code ganz normal mit if self.has_labels: weiter) ...
         if self.has_labels:
             print(f"  ✓ Wear-Datei gefunden: {os.path.basename(wear_file)}")
             wear_df = pd.read_csv(wear_file)
