@@ -22,8 +22,28 @@ class FraesenDataset(Dataset):
         self._load_or_build_data()
         self._normalize(global_mean, global_std)
 
-    # ... (_detect_wear_file bleibt exakt wie es ist) ...
-
+    def _detect_wear_file(self):
+            """Sucht automatisch die passende Wear-Datei im übergeordneten Verzeichnis oder im selben Ordner."""
+            csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
+            if not csv_files:
+                return None
+            
+            # Beispiel: "c_1_001.csv" -> ["c", "1", "001"] -> cutter_id = "c1"
+            parts = csv_files[0].replace('.csv', '').split('_')
+            if len(parts) < 2: return None
+            
+            cutter_id = f"{parts[0]}{parts[1]}" 
+            wear_filename = f"{cutter_id}_wear.csv"
+            
+            # Suche im aktuellen Ordner oder im übergeordneten Ordner
+            path_current = os.path.join(self.sensor_folder, wear_filename)
+            path_parent = os.path.join(os.path.dirname(self.sensor_folder), wear_filename)
+            
+            if os.path.exists(path_current): return path_current
+            if os.path.exists(path_parent): return path_parent
+            return None
+    
+    
     def _load_or_build_data(self):
         if os.path.exists(self.cache_file):
             try:
