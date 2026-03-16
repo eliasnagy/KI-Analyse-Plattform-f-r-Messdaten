@@ -8,7 +8,7 @@ from train import VerschleissCNN
 
 # --- 1. KONFIGURATION ---
 MODELL_PFAD = "bestes_modell.pth"
-LIVE_DATEN_ORDNER = "./live_daten/c2"  # Ordner mit den neuen CSVs von der Maschine
+LIVE_DATEN_ORDNER = "./live_daten/c2/"  # Ordner mit den neuen CSVs von der Maschine
 FENSTER_GROESSE = 1024
 
 # Orin auf Höchstleistung prüfen
