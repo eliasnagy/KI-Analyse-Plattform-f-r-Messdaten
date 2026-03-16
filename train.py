@@ -52,8 +52,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training läuft auf: {device}")
 
 # --- TRAININGS-DATEN --- (c1, c4)
-train_c1 = FraesenDataset('./daten/c1', fenster_groesse=1024, schritt_weite=1024)
-train_c4 = FraesenDataset('./daten/c4', fenster_groesse=1024, schritt_weite=1024)
+train_c1 = FraesenDataset('./daten/c1', window_size=1024, schritt_weite=1024)
+train_c4 = FraesenDataset('./daten/c4', window_size=1024, schritt_weite=1024)
 
 # Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
 # Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
