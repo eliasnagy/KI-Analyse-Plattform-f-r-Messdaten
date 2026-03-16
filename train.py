@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     modell = VerschleissCNN().to(device)
     fehler_funktion = nn.MSELoss()
-    optimizer = optim.Adam(modell.parameters(), lr=0.001, weight_decay=1e-4)
+    optimizer = optim.Adam(modell.parameters(), lr=0.0005, weight_decay=1e-4)
 
 
     # ==========================================

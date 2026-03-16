@@ -43,17 +43,8 @@ class FraesenDataset(Dataset):
             if os.path.exists(path_parent): return path_parent
             return None
     
-    
-    def _load_or_build_data(self):
-        if os.path.exists(self.cache_file):
-            try:
-                # ... (Dein bisheriger Cache-Lade Code) ...
-                return
-            except Exception as e:
-                os.remove(self.cache_file)
 
-        print(f"Erstelle neuen Cache für Ordner: {self.sensor_folder} ...")
-        
+    def _load_or_build_data(self):
         # --- NEU: HIER WIRD DER SCHALTER BENUTZT ---
         if self.is_inference:
             print("  ℹ Inferenz-Modus aktiv: Suche nicht nach Labels.")
