@@ -25,6 +25,8 @@ class FraesenDataset(Dataset):
         # 2. Normalisierung anwenden (Z-Score)
         self._normalize(global_mean, global_std)
 
+
+
     def _detect_wear_file(self):
         """Sucht automatisch die passende Wear-Datei im übergeordneten Verzeichnis oder im selben Ordner."""
         csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
@@ -46,15 +48,22 @@ class FraesenDataset(Dataset):
         if os.path.exists(path_parent): return path_parent
         return None
 
+
+
     def _load_or_build_data(self):
         """Lädt die Cache-Datei oder verarbeitet die CSVs und erstellt einen Cache."""
         if os.path.exists(self.cache_file):
-            print(f"Lade blitzschnell aus Cache: {self.cache_file}")
-            cache = torch.load(self.cache_file)
-            self.raw_files = cache['raw_files']
-            self.index_map = cache['index_map']
-            self.has_labels = cache['has_labels']
-            return
+            try:
+                print(f"Lade blitzschnell aus Cache: {self.cache_file}")
+                cache = torch.load(self.cache_file)
+                self.raw_files = cache['raw_files']
+                self.index_map = cache['index_map']
+                self.has_labels = cache['has_labels']
+                return
+            except Exception as e:
+                print(f"⚠️ Cache-Datei scheint beschädigt zu sein ({e}). Erstelle Cache neu...")
+                # Die kaputte Datei löschen
+                os.remove(self.cache_file)
 
         print(f"Erstelle neuen Cache für Ordner: {self.sensor_folder} ...")
         wear_file = self._detect_wear_file()
@@ -63,12 +72,10 @@ class FraesenDataset(Dataset):
         if self.has_labels:
             print(f"  ✓ Wear-Datei gefunden: {os.path.basename(wear_file)}")
             wear_df = pd.read_csv(wear_file)
-            # DAS GOLD-NUGGET: Wir nehmen den maximalen Verschleiß aller 3 Schneiden!
             wear_df['max_wear'] = wear_df[['flute_1', 'flute_2', 'flute_3']].max(axis=1)
             
             file_idx = 0
             for index, row in wear_df.iterrows():
-                # Baut den Dateinamen passend zur ID (z.B. c_1_001.csv)
                 parts = os.path.basename(wear_file).replace('_wear.csv', '')
                 file_name = f"{parts[0]}_{parts[1]}_{int(index + 1):03d}.csv"
                 file_path = os.path.join(self.sensor_folder, file_name)
@@ -95,13 +102,14 @@ class FraesenDataset(Dataset):
                     self.index_map.append((file_idx, start_idx, None))
                 file_idx += 1
 
-        # Cache auf der Festplatte/SD-Karte speichern
         torch.save({
             'raw_files': self.raw_files,
             'index_map': self.index_map,
             'has_labels': self.has_labels
         }, self.cache_file)
         print(f"  ✓ Cache gespeichert ({len(self.index_map)} Fenster generiert).")
+
+
 
     def _normalize(self, global_mean, global_std):
         """Wendet Z-Score Normalisierung auf die geladenen Daten an."""
@@ -123,8 +131,12 @@ class FraesenDataset(Dataset):
         for i in range(len(self.raw_files)):
             self.raw_files[i] = (self.raw_files[i] - self.mean) / self.std
 
+
+
     def __len__(self):
         return len(self.index_map)
+
+
 
     def __getitem__(self, idx):
         file_idx, start_idx, label = self.index_map[idx]
