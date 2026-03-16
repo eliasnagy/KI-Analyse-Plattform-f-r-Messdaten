@@ -139,7 +139,7 @@ for epoche in range(epochen):
             'modell_gewichte': modell.state_dict(),
             'train_mean': torch.tensor(train_mean),  # <-- In Tensor umwandeln
             'train_std': torch.tensor(train_std)     # <-- In Tensor umwandeln
-        }, "bestes_modell_komplett.pth")
+        }, "bestes_modell.pth")
         
         geduld_zaehler = 0
         print(f"  --> Neues bestes Modell gespeichert! Val-Fehler: {beste_val_fehler:.4f}")
