@@ -56,11 +56,11 @@ train_c1 = FraesenDataset('./daten/c1', './daten/c1_wear.csv', fenster_groesse=1
 train_c4 = FraesenDataset('./daten/c4', './daten/c4_wear.csv', fenster_groesse=1024, schritt_weite=1024)
 
 datensatz_train = ConcatDataset([train_c1, train_c4])
-train_loader = DataLoader(datensatz_train, batch_size=32, shuffle=True)
+train_loader = DataLoader(datensatz_train, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
 
 # --- VALIDIERUNGS-DATEN --- (c6)
 datensatz_val = FraesenDataset('./daten/c6', './daten/c6_wear.csv', fenster_groesse=1024)
-val_loader = DataLoader(datensatz_val, batch_size=32, shuffle=False)
+val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
 
 modell = VerschleissCNN().to(device)
 fehler_funktion = nn.MSELoss()

@@ -5,50 +5,70 @@ import numpy as np
 from torch.utils.data import Dataset
 import glob
 
-
 class FraesenDataset(Dataset):
     def __init__(self, sensor_ordner, wear_datei=None, fenster_groesse=1024, schritt_weite=512):
         self.fenster_groesse = fenster_groesse
-        self.daten_fenster = []
-        self.labels = []
-        self.hat_labels = wear_datei is not None # Merken wir uns für später
+        self.hat_labels = wear_datei is not None
         
-        # --- FALL 1: WIR HABEN VERSCHLEISSDATEN (Training & Validierung) ---
+        # Hier speichern wir die rohen Sensordaten (eine Matrix pro Datei)
+        self.rohe_dateien = []
+        
+        # Die "Landkarte": Speichert (datei_index, start_zeile, label) für jedes Fenster
+        self.index_map = []
+        
         if self.hat_labels:
             wear_df = pd.read_csv(wear_datei)
+            datei_idx = 0
+            
             for index, row in wear_df.iterrows():
-                datei_name = f"c_{sensor_ordner[-1]}_{int(index + 1):03d}.csv" # Passe das an deine Benennung an
+                datei_name = f"c_{sensor_ordner[-1]}_{int(index + 1):03d}.csv"
                 datei_pfad = os.path.join(sensor_ordner, datei_name)
-                verschleiss = float(row['flute_1']) 
                 
-                if not os.path.exists(datei_pfad): continue
-                sensor_daten = pd.read_csv(datei_pfad).values 
+                if not os.path.exists(datei_pfad): 
+                    continue
                 
+                # Als float32 laden, um RAM zu halbieren!
+                sensor_daten = pd.read_csv(datei_pfad).values.astype(np.float32)
+                self.rohe_dateien.append(sensor_daten)
+                
+                verschleiss = float(row['flute_1'])
+                
+                # Nur die Start-Indizes merken, nicht die Daten kopieren!
                 for start_idx in range(0, len(sensor_daten) - fenster_groesse, schritt_weite):
-                    self.daten_fenster.append(sensor_daten[start_idx : start_idx + fenster_groesse])
-                    self.labels.append(verschleiss)
-                    
-            self.labels = torch.tensor(np.array(self.labels), dtype=torch.float32).view(-1, 1)
+                    self.index_map.append((datei_idx, start_idx, verschleiss))
+                
+                datei_idx += 1
 
-        # --- FALL 2: WIR HABEN KEINE VERSCHLEISSDATEN (Echter Einsatz / Produktion) ---
         else:
-            # Suche einfach ALLE .csv Dateien im Sensor-Ordner
             alle_dateien = sorted(glob.glob(os.path.join(sensor_ordner, "*.csv")))
+            datei_idx = 0
+            
             for datei_pfad in alle_dateien:
-                sensor_daten = pd.read_csv(datei_pfad).values
+                sensor_daten = pd.read_csv(datei_pfad).values.astype(np.float32)
+                self.rohe_dateien.append(sensor_daten)
+                
                 for start_idx in range(0, len(sensor_daten) - fenster_groesse, schritt_weite):
-                    self.daten_fenster.append(sensor_daten[start_idx : start_idx + fenster_groesse])
-
-        # Sensordaten umwandeln (passiert in beiden Fällen)
-        self.daten_fenster = torch.tensor(np.array(self.daten_fenster), dtype=torch.float32)
-        self.daten_fenster = self.daten_fenster.permute(0, 2, 1)
+                    self.index_map.append((datei_idx, start_idx, None))
+                
+                datei_idx += 1
 
     def __len__(self):
-        return len(self.daten_fenster)
+        return len(self.index_map)
 
     def __getitem__(self, idx):
-        # Wenn wir Labels haben, geben wir (Daten, Label) zurück. Sonst nur die Daten.
+        # 1. Wo liegt das Fenster? Auf der Karte nachschauen
+        datei_idx, start_idx, label = self.index_map[idx]
+        
+        # 2. Genau dieses Fenster dynamisch aus der rohen Matrix ausschneiden
+        fenster_daten = self.rohe_dateien[datei_idx][start_idx : start_idx + self.fenster_groesse]
+        
+        # 3. In Tensor umwandeln und Dimensionen tauschen (für Conv1d: Kanäle nach vorne)
+        # .copy() ist wichtig, damit der Tensor im Speicher sauber anliegt
+        fenster_tensor = torch.tensor(fenster_daten.copy()).permute(1, 0) 
+        
         if self.hat_labels:
-            return self.daten_fenster[idx], self.labels[idx]
+            # Label als Shape [1] zurückgeben
+            label_tensor = torch.tensor([label], dtype=torch.float32)
+            return fenster_tensor, label_tensor
         else:
-            return self.daten_fenster[idx]
+            return fenster_tensor
