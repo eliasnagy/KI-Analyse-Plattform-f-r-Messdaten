@@ -80,7 +80,7 @@ val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_worker
 
 modell = VerschleissCNN().to(device)
 fehler_funktion = nn.MSELoss()
-optimizer = optim.Adam(modell.parameters(), lr=0.001, weight_decay=1e-4)
+optimizer = optim.Adam(modell.parameters(), lr=0.0001, weight_decay=1e-4)
 
 
 # ==========================================
