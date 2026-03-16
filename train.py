@@ -50,151 +50,152 @@ class VerschleissCNN(nn.Module):
         return x
 
 
-# ==========================================
-# 2. Vorbereitung für das Training
-# ==========================================
+if __name__ == "__main__":
+    # ==========================================
+    # 2. Vorbereitung für das Training
+    # ==========================================
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Training läuft auf: {device}")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Training läuft auf: {device}")
 
-# --- TRAININGS-DATEN --- (c1, c4)
-train_c1 = FraesenDataset('./trainings_daten/c1', window_size=1024, step_size=1024)
-train_c4 = FraesenDataset('./trainings_daten/c4', window_size=1024, step_size=1024)
+    # --- TRAININGS-DATEN --- (c1, c4)
+    train_c1 = FraesenDataset('./trainings_daten/c1', window_size=1024, step_size=1024)
+    train_c4 = FraesenDataset('./trainings_daten/c4', window_size=1024, step_size=1024)
 
-# Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
-# Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
-# (oder man verknüpft sie erst und berechnet dann, aber das Dataset nimmt uns das meiste ab).
-train_mean = train_c1.mean
-train_std = train_c1.std
+    # Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
+    # Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
+    # (oder man verknüpft sie erst und berechnet dann, aber das Dataset nimmt uns das meiste ab).
+    train_mean = train_c1.mean
+    train_std = train_c1.std
 
-datensatz_train = ConcatDataset([train_c1, train_c4])
+    datensatz_train = ConcatDataset([train_c1, train_c4])
 
-# Hier die neuen DataLoader-Einstellungen für den Jetson!
-train_loader = DataLoader(datensatz_train, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
+    # Hier die neuen DataLoader-Einstellungen für den Jetson!
+    train_loader = DataLoader(datensatz_train, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
 
-# --- VALIDIERUNGS-DATEN --- (c6)
-# WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
-datensatz_val = FraesenDataset('./trainings_daten/c6', window_size=1024, step_size=1024, global_mean=train_mean, global_std=train_std)
-val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
-
-
-modell = VerschleissCNN().to(device)
-fehler_funktion = nn.MSELoss()
-optimizer = optim.Adam(modell.parameters(), lr=0.001, weight_decay=1e-4)
+    # --- VALIDIERUNGS-DATEN --- (c6)
+    # WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
+    datensatz_val = FraesenDataset('./trainings_daten/c6', window_size=1024, step_size=1024, global_mean=train_mean, global_std=train_std)
+    val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
 
 
-# ==========================================
-# 3. Die Trainings-Schleife (Training Loop)
-# ==========================================
+    modell = VerschleissCNN().to(device)
+    fehler_funktion = nn.MSELoss()
+    optimizer = optim.Adam(modell.parameters(), lr=0.001, weight_decay=1e-4)
 
-epochen = 50                       # Sicherheitsnetz – Early Stopping greift meist viel früher
-beste_val_fehler = float('inf')
-geduld = 10                         # Stoppt nach 10 Epochen ohne Verbesserung
-geduld_zaehler = 0
 
-for epoche in range(epochen):
-    modell.train()
-    train_fehler_summe = 0.0
+    # ==========================================
+    # 3. Die Trainings-Schleife (Training Loop)
+    # ==========================================
 
-    # ==============================
-    # TRAINING (c1, c4)
-    # ==============================
-    for batch_idx, (sensordaten, wahrer_verschleiss) in enumerate(train_loader):
-        sensordaten = sensordaten.to(device)
-        wahrer_verschleiss = wahrer_verschleiss.to(device)
+    epochen = 50                       # Sicherheitsnetz – Early Stopping greift meist viel früher
+    beste_val_fehler = float('inf')
+    geduld = 10                         # Stoppt nach 10 Epochen ohne Verbesserung
+    geduld_zaehler = 0
+
+    for epoche in range(epochen):
+        modell.train()
+        train_fehler_summe = 0.0
+
+        # ==============================
+        # TRAINING (c1, c4)
+        # ==============================
+        for batch_idx, (sensordaten, wahrer_verschleiss) in enumerate(train_loader):
+            sensordaten = sensordaten.to(device)
+            wahrer_verschleiss = wahrer_verschleiss.to(device)
+            
+            optimizer.zero_grad()
+            vorhersage = modell(sensordaten)
+            fehler = fehler_funktion(vorhersage, wahrer_verschleiss)
+            fehler.backward()
+            optimizer.step()
+            
+            train_fehler_summe += fehler.item()
         
-        optimizer.zero_grad()
-        vorhersage = modell(sensordaten)
-        fehler = fehler_funktion(vorhersage, wahrer_verschleiss)
-        fehler.backward()
-        optimizer.step()
-        
-        train_fehler_summe += fehler.item()
-    
-    durchschnitt_train = train_fehler_summe / len(train_loader)
+        durchschnitt_train = train_fehler_summe / len(train_loader)
 
-    # ==============================
-    # VALIDIERUNG (c6)
-    # ==============================
+        # ==============================
+        # VALIDIERUNG (c6)
+        # ==============================
+        modell.eval()
+        val_fehler_summe = 0.0
+        
+        with torch.no_grad():
+            for sensordaten_val, wahrer_verschleiss_val in val_loader:
+                sensordaten_val, wahrer_verschleiss_val = sensordaten_val.to(device), wahrer_verschleiss_val.to(device)
+                vorhersage_val = modell(sensordaten_val)
+                fehler_val = fehler_funktion(vorhersage_val, wahrer_verschleiss_val)
+                val_fehler_summe += fehler_val.item()
+                
+        durchschnitt_val = val_fehler_summe / len(val_loader)
+        print(f"Epoche {epoche+1}/{epochen} | Train-Fehler: {durchschnitt_train:.4f} | Val-Fehler: {durchschnitt_val:.4f}")
+
+        # ==============================
+        # EARLY STOPPING
+        # ==============================
+        if durchschnitt_val < beste_val_fehler:
+            beste_val_fehler = durchschnitt_val
+            
+            torch.save({
+                'modell_gewichte': modell.state_dict(),
+                'train_mean': torch.tensor(train_mean),  # <-- In Tensor umwandeln
+                'train_std': torch.tensor(train_std)     # <-- In Tensor umwandeln
+            }, "bestes_modell.pth")
+            
+            geduld_zaehler = 0
+            print(f"  --> Neues bestes Modell gespeichert! Val-Fehler: {beste_val_fehler:.4f}")
+        else:
+            geduld_zaehler += 1
+            if geduld_zaehler >= geduld:
+                print(f"Early Stopping nach Epoche {epoche+1}!")
+                break
+
+    print("Training beendet!")
+
+
+    # ==========================================
+    # 4. Vorhersagen als CSV speichern
+    # ==========================================
+
+    # Modell laden
+    checkpoint = torch.load("bestes_modell.pth", weights_only=True)
+
+    modell.load_state_dict(checkpoint['modell_gewichte'])
+    train_mean = checkpoint['train_mean'].numpy()
+    train_std = checkpoint['train_std'].numpy()
+
     modell.eval()
-    val_fehler_summe = 0.0
-    
+
+    alle_vorhersagen = []
+    alle_echten_werte = []
+
     with torch.no_grad():
         for sensordaten_val, wahrer_verschleiss_val in val_loader:
-            sensordaten_val, wahrer_verschleiss_val = sensordaten_val.to(device), wahrer_verschleiss_val.to(device)
+            sensordaten_val = sensordaten_val.to(device)
             vorhersage_val = modell(sensordaten_val)
-            fehler_val = fehler_funktion(vorhersage_val, wahrer_verschleiss_val)
-            val_fehler_summe += fehler_val.item()
             
-    durchschnitt_val = val_fehler_summe / len(val_loader)
-    print(f"Epoche {epoche+1}/{epochen} | Train-Fehler: {durchschnitt_train:.4f} | Val-Fehler: {durchschnitt_val:.4f}")
+            # Von GPU zurück zu numpy
+            alle_vorhersagen.extend(vorhersage_val.cpu().numpy().flatten().tolist())
+            alle_echten_werte.extend(wahrer_verschleiss_val.numpy().flatten().tolist())
 
-    # ==============================
-    # EARLY STOPPING
-    # ==============================
-    if durchschnitt_val < beste_val_fehler:
-        beste_val_fehler = durchschnitt_val
-        
-        torch.save({
-            'modell_gewichte': modell.state_dict(),
-            'train_mean': torch.tensor(train_mean),  # <-- In Tensor umwandeln
-            'train_std': torch.tensor(train_std)     # <-- In Tensor umwandeln
-        }, "bestes_modell.pth")
-        
-        geduld_zaehler = 0
-        print(f"  --> Neues bestes Modell gespeichert! Val-Fehler: {beste_val_fehler:.4f}")
-    else:
-        geduld_zaehler += 1
-        if geduld_zaehler >= geduld:
-            print(f"Early Stopping nach Epoche {epoche+1}!")
-            break
+    # Absoluter Fehler pro Fenster
+    abweichung = [abs(v - e) for v, e in zip(alle_vorhersagen, alle_echten_werte)]
 
-print("Training beendet!")
+    ergebnis_df = pd.DataFrame({
+        'fenster_index':    range(len(alle_vorhersagen)),
+        'echter_verschleiss':    alle_echten_werte,
+        'vorhergesagter_verschleiss': alle_vorhersagen,
+        'absoluter_fehler': abweichung
+    })
 
-
-# ==========================================
-# 4. Vorhersagen als CSV speichern
-# ==========================================
-
-# Modell laden
-checkpoint = torch.load("bestes_modell.pth", weights_only=True)
-
-modell.load_state_dict(checkpoint['modell_gewichte'])
-train_mean = checkpoint['train_mean'].numpy()
-train_std = checkpoint['train_std'].numpy()
-
-modell.eval()
-
-alle_vorhersagen = []
-alle_echten_werte = []
-
-with torch.no_grad():
-    for sensordaten_val, wahrer_verschleiss_val in val_loader:
-        sensordaten_val = sensordaten_val.to(device)
-        vorhersage_val = modell(sensordaten_val)
-        
-        # Von GPU zurück zu numpy
-        alle_vorhersagen.extend(vorhersage_val.cpu().numpy().flatten().tolist())
-        alle_echten_werte.extend(wahrer_verschleiss_val.numpy().flatten().tolist())
-
-# Absoluter Fehler pro Fenster
-abweichung = [abs(v - e) for v, e in zip(alle_vorhersagen, alle_echten_werte)]
-
-ergebnis_df = pd.DataFrame({
-    'fenster_index':    range(len(alle_vorhersagen)),
-    'echter_verschleiss':    alle_echten_werte,
-    'vorhergesagter_verschleiss': alle_vorhersagen,
-    'absoluter_fehler': abweichung
-})
-
-ergebnis_df.to_csv('vorhersagen_c6.csv', index=False)
-print(f"Vorhersagen gespeichert: vorhersagen_c6.csv ({len(ergebnis_df)} Fenster)")
-print(f"Durchschnittlicher Fehler: {np.mean(abweichung):.4f}")
+    ergebnis_df.to_csv('vorhersagen_c6.csv', index=False)
+    print(f"Vorhersagen gespeichert: vorhersagen_c6.csv ({len(ergebnis_df)} Fenster)")
+    print(f"Durchschnittlicher Fehler: {np.mean(abweichung):.4f}")
 
 
 
-# export für TensorRT:
-"""
-dummy_input = torch.randn(1, 7, 1024, device=device)
-torch.onnx.export(modell, dummy_input, "verschleiss_modell.onnx", input_names=['sensordaten'], output_names=['verschleiss'])
-"""
+    # export für TensorRT:
+    """
+    dummy_input = torch.randn(1, 7, 1024, device=device)
+    torch.onnx.export(modell, dummy_input, "verschleiss_modell.onnx", input_names=['sensordaten'], output_names=['verschleiss'])
+    """
