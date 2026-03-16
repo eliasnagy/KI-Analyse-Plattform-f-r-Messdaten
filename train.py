@@ -52,15 +52,31 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training läuft auf: {device}")
 
 # --- TRAININGS-DATEN --- (c1, c4)
-train_c1 = FraesenDataset('./daten/c1', './daten/c1_wear.csv', fenster_groesse=1024, schritt_weite=1024)
-train_c4 = FraesenDataset('./daten/c4', './daten/c4_wear.csv', fenster_groesse=1024, schritt_weite=1024)
+train_c1 = FraesenDataset('./daten/c1', fenster_groesse=1024, schritt_weite=1024)
+train_c4 = FraesenDataset('./daten/c4', fenster_groesse=1024, schritt_weite=1024)
+
+# Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
+# Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
+# (oder man verknüpft sie erst und berechnet dann, aber das Dataset nimmt uns das meiste ab).
+train_mean = train_c1.mean
+train_std = train_c1.std
 
 datensatz_train = ConcatDataset([train_c1, train_c4])
+
+# Hier die neuen DataLoader-Einstellungen für den Jetson!
 train_loader = DataLoader(datensatz_train, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
 
 # --- VALIDIERUNGS-DATEN --- (c6)
-datensatz_val = FraesenDataset('./daten/c6', './daten/c6_wear.csv', fenster_groesse=1024)
+# WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
+datensatz_val = FraesenDataset(
+    './daten/c6', 
+    fenster_groesse=1024, 
+    schritt_weite=1024,
+    globaler_mean=train_mean,   # <-- NEU
+    globale_std=train_std       # <-- NEU
+)
 val_loader = DataLoader(datensatz_val, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
+
 
 modell = VerschleissCNN().to(device)
 fehler_funktion = nn.MSELoss()
