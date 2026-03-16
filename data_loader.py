@@ -6,28 +6,28 @@ from torch.utils.data import Dataset
 import glob
 
 class FraesenDataset(Dataset):
-    def __init__(self, sensor_ordner, fenster_groesse=1024, schritt_weite=512, globaler_mean=None, globale_std=None):
-        self.sensor_ordner = sensor_ordner
-        self.fenster_groesse = fenster_groesse
-        self.schritt_weite = schritt_weite
+    def __init__(self, sensor_folder, window_size=1024, step_size=512, global_mean=None, global_std=None):
+        self.sensor_folder = sensor_folder
+        self.window_size = window_size
+        self.step_size = step_size
         
         # Eindeutiger Name für die Cache-Datei im jeweiligen Ordner
-        ordner_name = os.path.basename(os.path.normpath(sensor_ordner))
-        self.cache_datei = os.path.join(sensor_ordner, f"cache_{ordner_name}_w{fenster_groesse}_s{schritt_weite}.pt")
+        folder_name = os.path.basename(os.path.normpath(sensor_folder))
+        self.cache_file = os.path.join(sensor_folder, f"cache_{folder_name}_w{window_size}_s{step_size}.pt")
         
-        self.rohe_dateien = []
+        self.raw_files = []
         self.index_map = []
-        self.hat_labels = False
+        self.has_labels = False
         
         # 1. Daten laden (entweder blitzschnell aus dem Cache oder frisch aus CSVs)
-        self._daten_laden_oder_bauen()
+        self._load_or_build_data()
         
         # 2. Normalisierung anwenden (Z-Score)
-        self._normalisieren(globaler_mean, globale_std)
+        self._normalize(global_mean, global_std)
 
     def _detect_wear_file(self):
         """Sucht automatisch die passende Wear-Datei im übergeordneten Verzeichnis oder im selben Ordner."""
-        csv_files = sorted([f for f in os.listdir(self.sensor_ordner) if f.endswith('.csv') and 'wear' not in f])
+        csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
         if not csv_files:
             return None
         
@@ -39,102 +39,102 @@ class FraesenDataset(Dataset):
         wear_filename = f"{cutter_id}_wear.csv"
         
         # Suche im aktuellen Ordner oder im übergeordneten Ordner
-        pfad_aktuell = os.path.join(self.sensor_ordner, wear_filename)
-        pfad_parent = os.path.join(os.path.dirname(self.sensor_ordner), wear_filename)
+        path_current = os.path.join(self.sensor_folder, wear_filename)
+        path_parent = os.path.join(os.path.dirname(self.sensor_folder), wear_filename)
         
-        if os.path.exists(pfad_aktuell): return pfad_aktuell
-        if os.path.exists(pfad_parent): return pfad_parent
+        if os.path.exists(path_current): return path_current
+        if os.path.exists(path_parent): return path_parent
         return None
 
-    def _daten_laden_oder_bauen(self):
+    def _load_or_build_data(self):
         """Lädt die Cache-Datei oder verarbeitet die CSVs und erstellt einen Cache."""
-        if os.path.exists(self.cache_datei):
-            print(f"Lade blitzschnell aus Cache: {self.cache_datei}")
-            cache = torch.load(self.cache_datei)
-            self.rohe_dateien = cache['rohe_dateien']
+        if os.path.exists(self.cache_file):
+            print(f"Lade blitzschnell aus Cache: {self.cache_file}")
+            cache = torch.load(self.cache_file)
+            self.raw_files = cache['raw_files']
             self.index_map = cache['index_map']
-            self.hat_labels = cache['hat_labels']
+            self.has_labels = cache['has_labels']
             return
 
-        print(f"Erstelle neuen Cache für Ordner: {self.sensor_ordner} ...")
-        wear_datei = self._detect_wear_file()
-        self.hat_labels = wear_datei is not None
+        print(f"Erstelle neuen Cache für Ordner: {self.sensor_folder} ...")
+        wear_file = self._detect_wear_file()
+        self.has_labels = wear_file is not None
 
-        if self.hat_labels:
-            print(f"  ✓ Wear-Datei gefunden: {os.path.basename(wear_datei)}")
-            wear_df = pd.read_csv(wear_datei)
+        if self.has_labels:
+            print(f"  ✓ Wear-Datei gefunden: {os.path.basename(wear_file)}")
+            wear_df = pd.read_csv(wear_file)
             # DAS GOLD-NUGGET: Wir nehmen den maximalen Verschleiß aller 3 Schneiden!
             wear_df['max_wear'] = wear_df[['flute_1', 'flute_2', 'flute_3']].max(axis=1)
             
-            datei_idx = 0
+            file_idx = 0
             for index, row in wear_df.iterrows():
                 # Baut den Dateinamen passend zur ID (z.B. c_1_001.csv)
-                parts = os.path.basename(wear_datei).replace('_wear.csv', '')
-                datei_name = f"{parts[0]}_{parts[1]}_{int(index + 1):03d}.csv"
-                datei_pfad = os.path.join(self.sensor_ordner, datei_name)
+                parts = os.path.basename(wear_file).replace('_wear.csv', '')
+                file_name = f"{parts[0]}_{parts[1]}_{int(index + 1):03d}.csv"
+                file_path = os.path.join(self.sensor_folder, file_name)
                 
-                if not os.path.exists(datei_pfad): continue
+                if not os.path.exists(file_path): continue
                 
-                sensor_daten = pd.read_csv(datei_pfad).values.astype(np.float32)
-                self.rohe_dateien.append(sensor_daten)
+                sensor_data = pd.read_csv(file_path).values.astype(np.float32)
+                self.raw_files.append(sensor_data)
                 
-                verschleiss = float(row['max_wear'])
+                wear_value = float(row['max_wear'])
                 
-                for start_idx in range(0, len(sensor_daten) - self.fenster_groesse, self.schritt_weite):
-                    self.index_map.append((datei_idx, start_idx, verschleiss))
-                datei_idx += 1
+                for start_idx in range(0, len(sensor_data) - self.window_size, self.step_size):
+                    self.index_map.append((file_idx, start_idx, wear_value))
+                file_idx += 1
         else:
             print("  ℹ Keine Wear-Datei gefunden. Lade nur Sensordaten (Inferenz-Modus).")
-            alle_dateien = sorted([f for f in glob.glob(os.path.join(self.sensor_ordner, "*.csv")) if 'wear' not in f])
-            datei_idx = 0
-            for datei_pfad in alle_dateien:
-                sensor_daten = pd.read_csv(datei_pfad).values.astype(np.float32)
-                self.rohe_dateien.append(sensor_daten)
+            all_files = sorted([f for f in glob.glob(os.path.join(self.sensor_folder, "*.csv")) if 'wear' not in f])
+            file_idx = 0
+            for file_path in all_files:
+                sensor_data = pd.read_csv(file_path).values.astype(np.float32)
+                self.raw_files.append(sensor_data)
                 
-                for start_idx in range(0, len(sensor_daten) - self.fenster_groesse, self.schritt_weite):
-                    self.index_map.append((datei_idx, start_idx, None))
-                datei_idx += 1
+                for start_idx in range(0, len(sensor_data) - self.window_size, self.step_size):
+                    self.index_map.append((file_idx, start_idx, None))
+                file_idx += 1
 
         # Cache auf der Festplatte/SD-Karte speichern
         torch.save({
-            'rohe_dateien': self.rohe_dateien,
+            'raw_files': self.raw_files,
             'index_map': self.index_map,
-            'hat_labels': self.hat_labels
-        }, self.cache_datei)
+            'has_labels': self.has_labels
+        }, self.cache_file)
         print(f"  ✓ Cache gespeichert ({len(self.index_map)} Fenster generiert).")
 
-    def _normalisieren(self, globaler_mean, globale_std):
+    def _normalize(self, global_mean, global_std):
         """Wendet Z-Score Normalisierung auf die geladenen Daten an."""
-        if len(self.rohe_dateien) == 0: return
+        if len(self.raw_files) == 0: return
 
-        alle_daten_kombiniert = np.vstack(self.rohe_dateien)
+        all_data_combined = np.vstack(self.raw_files)
         
         # Wenn kein Mean/Std übergeben wurde, berechnen wir sie selbst (passiert beim Trainings-Set)
-        if globaler_mean is None or globale_std is None:
-            self.mean = alle_daten_kombiniert.mean(axis=0)
-            self.std = alle_daten_kombiniert.std(axis=0)
+        if global_mean is None or global_std is None:
+            self.mean = all_data_combined.mean(axis=0)
+            self.std = all_data_combined.std(axis=0)
             self.std[self.std == 0] = 1e-6  # Verhindert Division durch Null
         else:
             # Bei Validierung/Inferenz nutzen wir die Werte vom Trainings-Set
-            self.mean = globaler_mean
-            self.std = globale_std
+            self.mean = global_mean
+            self.std = global_std
 
         # Anwenden auf alle Arrays in der Liste
-        for i in range(len(self.rohe_dateien)):
-            self.rohe_dateien[i] = (self.rohe_dateien[i] - self.mean) / self.std
+        for i in range(len(self.raw_files)):
+            self.raw_files[i] = (self.raw_files[i] - self.mean) / self.std
 
     def __len__(self):
         return len(self.index_map)
 
     def __getitem__(self, idx):
-        datei_idx, start_idx, label = self.index_map[idx]
+        file_idx, start_idx, label = self.index_map[idx]
         
         # Dynamisches Ausschneiden aus dem RAM
-        fenster_daten = self.rohe_dateien[datei_idx][start_idx : start_idx + self.fenster_groesse]
-        fenster_tensor = torch.tensor(fenster_daten.copy()).permute(1, 0)
+        window_data = self.raw_files[file_idx][start_idx : start_idx + self.window_size]
+        window_tensor = torch.tensor(window_data.copy()).permute(1, 0)
         
-        if self.hat_labels:
+        if self.has_labels:
             label_tensor = torch.tensor([label], dtype=torch.float32)
-            return fenster_tensor, label_tensor
+            return window_tensor, label_tensor
         else:
-            return fenster_tensor
+            return window_tensor
