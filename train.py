@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import ConcatDataset, DataLoader
-from torch.serialization import safe_globals
 import pandas as pd
 import numpy as np
 
@@ -138,9 +137,9 @@ for epoche in range(epochen):
         
         torch.save({
             'modell_gewichte': modell.state_dict(),
-            'train_mean': train_mean,
-            'train_std': train_std
-        }, "bestes_modell.pth")
+            'train_mean': torch.tensor(train_mean),  # <-- In Tensor umwandeln
+            'train_std': torch.tensor(train_std)     # <-- In Tensor umwandeln
+        }, "bestes_modell_komplett.pth")
         
         geduld_zaehler = 0
         print(f"  --> Neues bestes Modell gespeichert! Val-Fehler: {beste_val_fehler:.4f}")
@@ -158,12 +157,11 @@ print("Training beendet!")
 # ==========================================
 
 # Modell laden
-with safe_globals([np.core.multiarray._reconstruct, np.ndarray, np.dtype, np.dtype('float32').type]):
-    checkpoint = torch.load("bestes_modell.pth", weights_only=True)
+checkpoint = torch.load("bestes_modell.pth", weights_only=True)
 
 modell.load_state_dict(checkpoint['modell_gewichte'])
-train_mean = checkpoint['train_mean']
-train_std = checkpoint['train_std']
+train_mean = checkpoint['train_mean'].numpy()
+train_std = checkpoint['train_std'].numpy()
 
 modell.eval()
 
