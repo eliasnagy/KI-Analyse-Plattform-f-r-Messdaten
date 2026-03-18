@@ -45,7 +45,6 @@ class FraesenDataset(Dataset):
     
 
     def _load_or_build_data(self):
-        # --- NEU: HIER WIRD DER SCHALTER BENUTZT ---
         if self.is_inference:
             print("  ℹ Inferenz-Modus aktiv: Suche nicht nach Labels.")
             self.has_labels = False
@@ -54,7 +53,6 @@ class FraesenDataset(Dataset):
             wear_file = self._detect_wear_file()
             self.has_labels = wear_file is not None
 
-        # ... (Ab hier geht dein bisheriger Code ganz normal mit if self.has_labels: weiter) ...
         if self.has_labels:
             print(f"  ✓ Wear-Datei gefunden: {os.path.basename(wear_file)}")
             wear_df = pd.read_csv(wear_file)
@@ -73,18 +71,44 @@ class FraesenDataset(Dataset):
                 
                 wear_value = float(row['max_wear'])
                 
+                # --- THRESHOLDING LOGIK (Dynamisch) ---
+                # Berechne die durchschnittliche Schwankung der gesamten Datei
+                file_activity = np.std(sensor_data, axis=0).mean()
+                # Setze den Schwellenwert auf z.B. 20% der Durchschnittsaktivität
+                threshold = file_activity * 0.20 
+                
                 for start_idx in range(0, len(sensor_data) - self.window_size, self.step_size):
+                    window = sensor_data[start_idx : start_idx + self.window_size]
+                    
+                    # Berechne die Aktivität nur für dieses spezifische Fenster
+                    window_activity = np.std(window, axis=0).mean()
+                    
+                    # Ist das Fenster zu "ruhig"? -> Dann ist es ein Luftschnitt. Ignorieren!
+                    if window_activity < threshold:
+                        continue 
+                        
                     self.index_map.append((file_idx, start_idx, wear_value))
                 file_idx += 1
+                
         else:
-            print("  ℹ Keine Wear-Datei gefunden. Lade nur Sensordaten (Inferenz-Modus).")
+            print("Keine Wear-Datei gefunden. Lade nur Sensordaten (Inferenz-Modus).")
             all_files = sorted([f for f in glob.glob(os.path.join(self.sensor_folder, "*.csv")) if 'wear' not in f])
             file_idx = 0
             for file_path in all_files:
                 sensor_data = pd.read_csv(file_path).values.astype(np.float32)
                 self.raw_files.append(sensor_data)
                 
+                # Auch hier Thresholding anwenden, damit wir in der Inferenz keine Luft vorhersagen
+                file_activity = np.std(sensor_data, axis=0).mean()
+                threshold = file_activity * 0.20 
+                
                 for start_idx in range(0, len(sensor_data) - self.window_size, self.step_size):
+                    window = sensor_data[start_idx : start_idx + self.window_size]
+                    window_activity = np.std(window, axis=0).mean()
+                    
+                    if window_activity < threshold:
+                        continue
+                        
                     self.index_map.append((file_idx, start_idx, None))
                 file_idx += 1
 
@@ -93,8 +117,7 @@ class FraesenDataset(Dataset):
             'index_map': self.index_map,
             'has_labels': self.has_labels
         }, self.cache_file)
-        print(f"  ✓ Cache gespeichert ({len(self.index_map)} Fenster generiert).")
-
+        print(f"Cache gespeichert ({len(self.index_map)} echte Schnitt-Fenster generiert).")
 
 
     def _normalize(self, global_mean, global_std):
