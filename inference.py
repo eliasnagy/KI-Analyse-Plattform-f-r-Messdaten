@@ -5,11 +5,18 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from data_loader import FraesenDataset
 from train import VerschleissCNN
+from dotenv import load_dotenv
 
-# --- 1. KONFIGURATION ---
-MODELL_PFAD = "bestes_modell.pth"
-LIVE_DATEN_ORDNER = "./live_daten/c2/"  # Ordner mit den neuen CSVs von der Maschine
-FENSTER_GROESSE = 1024
+load_dotenv()
+
+MODELL_PFAD = os.getenv("MODEL_PATH", "bestes_modell.pth")
+LIVE_DATEN_ORDNER = os.getenv("LIVE_DATA_DIR", "./live_daten/c2/")
+
+WINDOW_SIZE = int(os.getenv("WINDOW_SIZE", 1024))
+STEP_SIZE = int(os.getenv("STEP_SIZE", 1024))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", 128))
+NUM_WORKERS = int(os.getenv("NUM_WORKERS", 4))
+GRENZWERT = float(os.getenv("GRENZWERT_VERSCHLEISS", 100.0))
 
 # Orin auf Höchstleistung prüfen
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -29,18 +36,22 @@ train_mean = checkpoint['train_mean'].cpu().numpy()
 train_std = checkpoint['train_std'].cpu().numpy()
 
 # --- 3. LIVE-DATEN LADEN ---
-# In deiner inference.py:
 live_dataset = FraesenDataset(
     sensor_folder=LIVE_DATEN_ORDNER, 
-    window_size=1024, 
-    step_size=1024, 
+    window_size=WINDOW_SIZE,      # <-- Hier Variable nutzen
+    step_size=STEP_SIZE,          # <-- Hier Variable nutzen
     global_mean=train_mean,      
     global_std=train_std,
     is_inference=True
 )
 
-# pin_memory=True und num_workers=4 machen den Jetson hier wieder extrem schnell
-live_loader = DataLoader(live_dataset, batch_size=128, shuffle=False, num_workers=4, pin_memory=True)
+live_loader = DataLoader(
+    live_dataset, 
+    batch_size=BATCH_SIZE,        # <-- Hier Variable nutzen
+    shuffle=False, 
+    num_workers=NUM_WORKERS,      # <-- Hier Variable nutzen
+    pin_memory=True
+)
 
 if len(live_dataset) == 0:
     print("Keine auswertbaren Daten gefunden!")
@@ -74,8 +85,6 @@ print(f"Anzahl ausgewerteter Fenster: {len(alle_vorhersagen)}")
 print(f"Durchschnittlich geschätzter Verschleiß: {durchschnittlicher_verschleiss:.4f}")
 print(f"Maximal geschätzter Verschleiß:        {maximaler_verschleiss:.4f}")
 
-# Optional: Alarm schlagen, wenn ein Grenzwert überschritten wird
-GRENZWERT = 100.0 # Passe diesen Wert an deine Einheit an
 if maximaler_verschleiss > GRENZWERT:
     print("\nALARM: Kritischer Werkzeugverschleiß erkannt! Maschine stoppen!")
 
