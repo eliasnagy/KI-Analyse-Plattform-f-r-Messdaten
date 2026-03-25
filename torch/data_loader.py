@@ -52,7 +52,7 @@ class FraesenDataset(Dataset):
 
     def _load_or_build_data(self):
         if self.is_inference:
-            print("  ℹ Inferenz-Modus aktiv: Suche nicht nach Labels.")
+            print("Inferenz-Modus aktiv: Suche nicht nach Labels.")
             self.has_labels = False
             wear_file = None
         else:
@@ -60,7 +60,6 @@ class FraesenDataset(Dataset):
             self.has_labels = wear_file is not None
 
         if self.has_labels:
-            print(f"  ✓ Wear-Datei gefunden: {os.path.basename(wear_file)}")
             wear_df = pd.read_csv(wear_file)
             wear_df['max_wear'] = wear_df[['flute_1', 'flute_2', 'flute_3']].max(axis=1)
             
@@ -97,8 +96,8 @@ class FraesenDataset(Dataset):
                 file_idx += 1
                 
         else:
-            print("Keine Wear-Datei gefunden. Lade nur Sensordaten (Inferenz-Modus).")
-            all_files = sorted([f for f in glob.glob(os.path.join(self.sensor_folder, "*.csv")) if 'wear' not in f])
+            search_pattern = os.path.join(self.sensor_folder, "**", "*.csv")
+            all_files = sorted([f for f in glob.glob(search_pattern, recursive=True) if 'wear' not in f])
             file_idx = 0
             for file_path in all_files:
                 sensor_data = pd.read_csv(file_path).values.astype(np.float32)

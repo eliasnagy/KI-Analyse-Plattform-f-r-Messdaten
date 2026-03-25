@@ -10,8 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODELL_PFAD = os.getenv("MODEL_PATH", "bestes_modell.pth")
-LIVE_DATEN_ORDNER = os.getenv("LIVE_DATA_DIR", "./live_daten/c2/")
-
+LIVE_DATEN_ORDNER = os.getenv("LIVE_DATA_DIR", "./live_daten/")
 WINDOW_SIZE = int(os.getenv("WINDOW_SIZE", 1024))
 STEP_SIZE = int(os.getenv("STEP_SIZE", 1024))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", 128))
