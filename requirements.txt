@@ -16,3 +16,6 @@ scipy==1.17.0
 six==1.17.0
 threadpoolctl==3.6.0
 tzdata==2025.3
+skl2onnx==1.13.1
+onnx==1.14.0
+onnxruntime==1.15.1

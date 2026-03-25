@@ -46,7 +46,17 @@ class Config:
     MLP_MAX_ITER = int(os.getenv('MLP_MAX_ITER', '1000'))
     MLP_ACTIVATION = os.getenv('MLP_ACTIVATION', 'relu')
     MLP_SOLVER = os.getenv('MLP_SOLVER', 'adam')
-    
+    # Additional MLP hyperparameters (optional)
+    MLP_VALIDATION_FRACTION = float(os.getenv('MLP_VALIDATION_FRACTION', '0.1'))
+    # Strip quotes in case .env uses 'adaptive' with quotes
+    _mlp_lr = os.getenv('MLP_LEARNING_RATE', 'adaptive')
+    MLP_LEARNING_RATE = _mlp_lr.strip("'\"") if isinstance(_mlp_lr, str) else _mlp_lr
+    MLP_LEARNING_RATE_INIT = float(os.getenv('MLP_LEARNING_RATE_INIT', '0.001'))
+    MLP_ALPHA = float(os.getenv('MLP_ALPHA', '0.0001'))
+    # Early stopping flag from .env (supports True/true/1)
+    MLP_EARLY_STOPPING = os.getenv('MLP_EARLY_STOPPING', 'False') in ['True', 'true', '1']
+ 
+
     # ==========================================
     # DATEN PARAMETER
     # ==========================================
@@ -80,6 +90,8 @@ class Config:
         print(f"\nMLP:")
         print(f"  Hidden Layers: {Config.MLP_HIDDEN_LAYERS}, Max Iter: {Config.MLP_MAX_ITER}")
         print(f"  Activation: {Config.MLP_ACTIVATION}, Solver: {Config.MLP_SOLVER}")
+        print(f"  Learning Rate: {Config.MLP_LEARNING_RATE}, LR Init: {Config.MLP_LEARNING_RATE_INIT}, Alpha: {Config.MLP_ALPHA}")
+        print(f"  Early Stopping: {Config.MLP_EARLY_STOPPING}, Validation Fraction: {Config.MLP_VALIDATION_FRACTION}")
         print(f"\nDaten:")
         print(f"  Test Split: {Config.TEST_SPLIT_RATIO}, Random State: {Config.RANDOM_STATE}")
         print("="*70 + "\n")

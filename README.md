@@ -171,6 +171,32 @@ python evaluate.py --model MLP --model-path output_files/model_MLP_20260304_1530
 - **Top 10 beste Vorhersagen**: Mit einzelnen Fehlern
 - **Top 10 schlechteste Vorhersagen**: Für Fehleranalyse
 
+Produktivbetrieb / Inferenz
+---------------------------
+
+Nachdem ein Modell angelernt und die zugehörigen Scaler gespeichert wurden, kann das Tool im Produktivbetrieb verwendet werden, um für einzelne neue Messungen (ein "Schnitt" als CSV) Verschleiß vorherzusagen.
+
+Beispielaufrufe:
+
+```bash
+# Verwende die jeweils neuesten Dateien in `output_files/`
+python predict.py --input-file trainingsdata/data_files/c1/c_1_112.csv
+
+# Modell und Scaler explizit angeben
+python predict.py --input-file trainingsdata/data_files/c1/c_1_112.csv \
+  --model-path output_files/model_MLP_20260315_163012.pkl \
+  --scaler-path output_files/scaler_MLP_20260315_163012.pkl
+
+# Vorhersage in Datei speichern
+python predict.py --input-file trainingsdata/data_files/c1/c_1_112.csv --output pred.txt
+```
+
+Hinweise:
+- `predict.py` lädt standardmäßig das neueste `model_*.pkl` und `scaler_*.pkl` aus `output_files/` (wenn keine Pfade angegeben werden).
+- Die Eingabe-CSV muss das gleiche Format haben wie die Trainingsdaten (keine Header, 7 Spalten in der in `.env` konfigurierten Reihenfolge).
+- `predict.py` gibt die geschätzte `max_wear` als einzelne Zahl aus.
+
+
 Warum mehrere Folder kombinieren?
 ----------------------------------
 

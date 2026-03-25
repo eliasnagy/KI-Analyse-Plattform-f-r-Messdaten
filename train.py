@@ -2,6 +2,10 @@ import os
 import argparse
 import numpy as np
 import joblib
+from sklearn.pipeline import Pipeline
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+import onnx
 from datetime import datetime
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
 from sklearn.preprocessing import StandardScaler
@@ -55,7 +59,16 @@ class Trainer:
 
         elif model_type == "MLP":
             hidden = tuple(int(x) for x in Config.MLP_HIDDEN_LAYERS.split(",") if x.strip() != "")
-            model = MLPModel(hidden_layer_sizes=hidden, activation=Config.MLP_ACTIVATION, solver=Config.MLP_SOLVER, max_iter=Config.MLP_MAX_ITER)
+            model = MLPModel(
+                hidden_layer_sizes=hidden,
+                activation=Config.MLP_ACTIVATION,
+                solver=Config.MLP_SOLVER,
+                max_iter=Config.MLP_MAX_ITER,
+                validation_fraction=Config.MLP_VALIDATION_FRACTION,
+                learning_rate=Config.MLP_LEARNING_RATE,
+                learning_rate_init=Config.MLP_LEARNING_RATE_INIT,
+                alpha=Config.MLP_ALPHA
+            )
             model.fit(X_train_scaled, y_train)
             train_predictions = model.predict(X_train_scaled)
             test_predictions = model.predict(X_test_scaled)
@@ -95,7 +108,7 @@ class Trainer:
         
         if r2_gap > 0.15:  # Großer Gap deutet auf Overfitting hin
             print("   ⚠️  WARNUNG: STARKES OVERFITTING ERKANNT!")
-            print(f"   Train-R² ({train_r2:.4f}) ist deutlich höher als Test-R² ({test_r2:.4f})")
+            print(f"    Train-R² ({train_r2:.4f}) ist deutlich höher als Test-R² ({test_r2:.4f})")
             print("   → Empfehlung: Modell komplexität reduzieren oder mehr Trainings-Daten")
         elif r2_gap > 0.05:
             print("   ⚠️  HINWEIS: Leichtes Overfitting erkannt")
@@ -130,17 +143,31 @@ class Trainer:
             )
         """
 
-        # Modell speichern
+        # Modell speichern (ONNX, inkl. Scaler in einer Pipeline)
         os.makedirs(Config.OUTPUT_FILES_FOLDER, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        model_filename = f"{Config.OUTPUT_FILES_FOLDER}/model_{model_type}_{timestamp}.pkl"
-        scaler_filename = f"{Config.OUTPUT_FILES_FOLDER}/scaler_{model_type}_{timestamp}.pkl"
-        
-        joblib.dump(model.model, model_filename)
-        joblib.dump(scaler, scaler_filename)
-        
-        print(f"\n✓ Modell gespeichert: {model_filename}")
-        print(f"✓ Scaler gespeichert: {scaler_filename}")
+
+        # Erstelle Pipeline aus Scaler + Modell, damit Preprocessing im ONNX enthalten ist
+        n_features = X_train.shape[1]
+        pipeline = Pipeline([('scaler', scaler), ('model', model.model)])
+
+        try:
+            initial_types = [('float_input', FloatTensorType([None, n_features]))]
+            onnx_model = convert_sklearn(pipeline, initial_types=initial_types, target_opset=12)
+            onnx_filename = f"{Config.OUTPUT_FILES_FOLDER}/model_{model_type}_{timestamp}.onnx"
+            with open(onnx_filename, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+
+            print(f"\n✓ ONNX-Modell gespeichert: {onnx_filename}")
+        except Exception as e:
+            print("\n⚠️ Fehler beim Export zu ONNX:", str(e))
+            # Fallback: speichere weiterhin das sklearn-Modell und den Scaler als pkl
+            model_filename = f"{Config.OUTPUT_FILES_FOLDER}/model_{model_type}_{timestamp}.pkl"
+            scaler_filename = f"{Config.OUTPUT_FILES_FOLDER}/scaler_{model_type}_{timestamp}.pkl"
+            joblib.dump(model.model, model_filename)
+            joblib.dump(scaler, scaler_filename)
+            print(f"✓ Fallback: Modell gespeichert: {model_filename}")
+            print(f"✓ Fallback: Scaler gespeichert: {scaler_filename}")
 
 
 def parse_args():
