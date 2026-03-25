@@ -38,8 +38,8 @@ train_std = checkpoint['train_std'].cpu().numpy()
 # --- 3. LIVE-DATEN LADEN ---
 live_dataset = FraesenDataset(
     sensor_folder=LIVE_DATEN_ORDNER, 
-    window_size=WINDOW_SIZE,      # <-- Hier Variable nutzen
-    step_size=STEP_SIZE,          # <-- Hier Variable nutzen
+    window_size=WINDOW_SIZE,  
+    step_size=STEP_SIZE,         
     global_mean=train_mean,      
     global_std=train_std,
     is_inference=True
@@ -47,9 +47,9 @@ live_dataset = FraesenDataset(
 
 live_loader = DataLoader(
     live_dataset, 
-    batch_size=BATCH_SIZE,        # <-- Hier Variable nutzen
+    batch_size=BATCH_SIZE,   
     shuffle=False, 
-    num_workers=NUM_WORKERS,      # <-- Hier Variable nutzen
+    num_workers=NUM_WORKERS,  
     pin_memory=True
 )
 

@@ -10,7 +10,7 @@ class FraesenDataset(Dataset):
         self.sensor_folder = sensor_folder
         self.window_size = window_size
         self.step_size = step_size
-        self.is_inference = is_inference  # <-- NEU: Schalter merken
+        self.is_inference = is_inference
         
         folder_name = os.path.basename(os.path.normpath(sensor_folder))
         self.cache_file = os.path.join(sensor_folder, f"cache_{folder_name}_w{window_size}_s{step_size}.pt")

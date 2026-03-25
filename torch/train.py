@@ -72,8 +72,8 @@ if __name__ == "__main__":
     print(f"Training läuft auf: {device}")
 
     # --- TRAININGS-DATEN --- (c1, c4)
-    train_c1 = FraesenDataset('./trainings_daten/c1', WINDOW_SIZE=1024, STEP_SIZE=1024)
-    train_c4 = FraesenDataset('./trainings_daten/c4', WINDOW_SIZE=1024, STEP_SIZE=1024)
+    train_c1 = FraesenDataset('./trainings_daten/c1', window_size=WINDOW_SIZE, step_size=STEP_SIZE)
+    train_c4 = FraesenDataset('./trainings_daten/c4', window_size=WINDOW_SIZE, step_size=STEP_SIZE)
 
     # Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
     # Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
@@ -83,17 +83,17 @@ if __name__ == "__main__":
     datensatz_train = ConcatDataset([train_c1, train_c4])
 
     # Hier die neuen DataLoader-Einstellungen für den Jetson!
-    train_loader = DataLoader(datensatz_train, BATCH_SIZE=256, shuffle=True, NUM_WORKERS=4, pin_memory=True)
+    train_loader = DataLoader(datensatz_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
 
     # --- VALIDIERUNGS-DATEN --- (c6)
     # WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
-    datensatz_val = FraesenDataset('./trainings_daten/c6', WINDOW_SIZE=1024, STEP_SIZE=1024, global_mean=train_mean, global_std=train_std)
-    val_loader = DataLoader(datensatz_val, BATCH_SIZE=256, shuffle=False, NUM_WORKERS=4, pin_memory=True)
+    datensatz_val = FraesenDataset('./trainings_daten/c6', window_size=WINDOW_SIZE, step_size=STEP_SIZE, global_mean=train_mean, global_std=train_std)
+    val_loader = DataLoader(datensatz_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
 
     modell = VerschleissCNN().to(device)
     fehler_funktion = nn.MSELoss()
-    optimizer = optim.Adam(modell.parameters(), LEARNING_RATE=0.0005, WEIGHT_DECAY=1e-4)
+    optimizer = optim.Adam(modell.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
 
     # ==========================================
