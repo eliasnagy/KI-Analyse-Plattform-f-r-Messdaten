@@ -145,7 +145,7 @@ class Trainer:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Trainiere ML-Modell für Werkzeugverschleiß-Vorhersage")
-    parser.add_argument("--base-dir", default="./trainingsdata", help="Basisverzeichnis der Trainingsdaten (Standard: aus .env)")
+    parser.add_argument("--base-dir", default="./trainings_daten", help="Basisverzeichnis der Trainingsdaten (Standard: aus .env)")
     parser.add_argument("--model", choices=["RandomForest", "MLP"], default=None, help="Modell-Typ (Standard: aus .env)")
     parser.add_argument(
         "--input-folders", 

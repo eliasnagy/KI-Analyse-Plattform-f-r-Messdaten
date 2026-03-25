@@ -16,7 +16,7 @@ class Config:
     # ==========================================
     # FOLDER PFADE
     # ==========================================
-    BASE_TRAINING_DIR = os.getenv('BASE_TRAINING_DIR', './trainingsdata')
+    BASE_TRAINING_DIR = os.getenv('BASE_TRAINING_DIR', './trainings_daten')
     INPUT_FOLDERS_STR = os.getenv('INPUT_FOLDERS', 'data_files/c1')  # Komma-getrennte Liste
     INPUT_FOLDERS = [f.strip() for f in INPUT_FOLDERS_STR.split(',')]
     WEAR_FILES_FOLDER = os.getenv('WEAR_FILES_FOLDER', 'wear_files')
