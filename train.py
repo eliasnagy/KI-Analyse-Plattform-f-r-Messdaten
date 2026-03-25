@@ -64,7 +64,7 @@ class VerschleissCNN(nn.Module):
 
 
 if __name__ == "__main__":
-    # ==========================================LEARNING_RATE
+    # ==========================================
     # 2. Vorbereitung für das Training
     # ==========================================
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     EPOCHS = 50                       # Sicherheitsnetz – Early Stopping greift meist viel früher
     best_val_error = float('inf')
-    PATIENCE = 10                         # Stoppt nach 10 EPOCHS ohne Verbesserung
+    PATIENCE = 10                     # Stoppt nach 10 EPOCHS ohne Verbesserung
     patience_counter = 0
 
     for epoche in range(EPOCHS):

@@ -20,7 +20,7 @@ GRENZWERT = float(os.getenv("GRENZWERT_VERSCHLEISS", 100.0))
 
 # Orin auf Höchstleistung prüfen
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"🚀 Starte Live-Inferenz auf: {device}")
+print(f"Starte Live-Inferenz auf: {device}")
 
 # --- 2. MODELL & NORMALISIERUNG LADEN ---
 print("Lade Modell und Normalisierungs-Werte...")

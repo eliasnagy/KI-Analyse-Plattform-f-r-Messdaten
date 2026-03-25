@@ -23,7 +23,6 @@ class FraesenDataset(Dataset):
         self._normalize(global_mean, global_std)
 
     def _detect_wear_file(self):
-            """Sucht automatisch die passende Wear-Datei im übergeordneten Verzeichnis oder im selben Ordner."""
             csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
             if not csv_files:
                 return None
