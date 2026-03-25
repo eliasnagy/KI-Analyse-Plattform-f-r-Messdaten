@@ -155,7 +155,7 @@ if __name__ == "__main__":
                 'modell_gewichte': modell.state_dict(),
                 'train_mean': torch.tensor(train_mean),  # <-- In Tensor umwandeln
                 'train_std': torch.tensor(train_std)     # <-- In Tensor umwandeln
-            }, "bestes_modell.pth")
+            }, "torch/bestes_modell.pth")
             
             patience_counter = 0
             print(f"  --> Neues bestes Modell gespeichert! Val-Fehler: {best_val_error:.4f}")
