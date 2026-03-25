@@ -12,7 +12,7 @@ read -p "Auswahl: " wahl
 case $wahl in
   1)
     echo "Starte Torch..."
-    # Wir rufen Python auf, bleiben aber im Hauptordner stehen!
+    # Wir rufen Python auf, bleiben aber im Hauptordner stehen
     ./env_torch/bin/python3 ./torch/train.py
     ;;
   2)
