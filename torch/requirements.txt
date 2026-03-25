@@ -1,0 +1,7 @@
+# Datenverarbeitung
+numpy
+pandas
+dotenv
+
+# Machine Learning (Für Jetson nicht so installieren!!!!!)
+torch

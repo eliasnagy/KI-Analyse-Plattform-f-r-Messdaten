@@ -1,5 +1,6 @@
 .venv
 *.npy
-_pycache__/
 __pycache__/
 numpy_files/
+*.zip
+*.pth
