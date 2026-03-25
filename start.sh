@@ -21,7 +21,7 @@ case $hauptwahl in
     read -p "Wähle Unteroption [a-b]: " unterwahl
     case $unterwahl in
       a)
-        ./env_classic/bin/python3 ./klassische_modelle/training.py --model $MODEL_TYPE
+        ./env_classic/bin/python3 ./klassische_modelle/train.py --model $MODEL_TYPE
         ;;
       b)
         ./env_classic/bin/python3 ./klassische_modelle/eval.py --model $MODEL_TYPE
@@ -39,7 +39,7 @@ case $hauptwahl in
     case $unterwahl in
       a)
         # Hier nutzt du ebenfalls das gleiche Training-Skript mit dem MLP-Parameter
-        ./env_classic/bin/python3 ./klassische_modelle/training.py --model $MODEL_TYPE
+        ./env_classic/bin/python3 ./klassische_modelle/train.py --model $MODEL_TYPE
         ;;
       b)
         ./env_classic/bin/python3 ./klassische_modelle/eval.py --model $MODEL_TYPE
