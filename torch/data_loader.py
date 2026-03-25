@@ -23,25 +23,32 @@ class FraesenDataset(Dataset):
         self._normalize(global_mean, global_std)
 
     def _detect_wear_file(self):
-            csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
-            if not csv_files:
-                return None
-            
-            # Beispiel: "c_1_001.csv" -> ["c", "1", "001"] -> cutter_id = "c1"
-            parts = csv_files[0].replace('.csv', '').split('_')
-            if len(parts) < 2: return None
-            
-            cutter_id = f"{parts[0]}{parts[1]}" 
-            wear_filename = f"{cutter_id}_wear.csv"
-            
-            # Suche im aktuellen Ordner oder im übergeordneten Ordner
-            path_current = os.path.join(self.sensor_folder, wear_filename)
-            path_parent = os.path.join(os.path.dirname(self.sensor_folder), wear_filename)
-            
-            if os.path.exists(path_current): return path_current
-            if os.path.exists(path_parent): return path_parent
+        # 1. Alle Sensor-CSV-Dateien finden, um die ID zu extrahieren
+        csv_files = sorted([f for f in os.listdir(self.sensor_folder) if f.endswith('.csv') and 'wear' not in f])
+        if not csv_files:
             return None
-    
+        
+        # Extrahiere cutter_id (z.B. "c_1_001.csv" -> "c1")
+        parts = csv_files[0].replace('.csv', '').split('_')
+        if len(parts) < 2: 
+            return None
+        
+        cutter_id = f"{parts[0]}{parts[1]}" 
+        wear_filename = f"{cutter_id}_wear.csv"
+        
+        current_script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_script_dir)
+
+        # 2. Pfad zum neuen Unterordner definieren
+        wear_folder = os.path.join(project_root, "trainings_daten", "wear_files")
+        path_wear = os.path.join(wear_folder, wear_filename)
+        
+        # 3. Prüfen, ob die Datei dort existiert
+        if os.path.exists(path_wear):
+            return path_wear
+            
+        return None
+        
 
     def _load_or_build_data(self):
         if self.is_inference:
