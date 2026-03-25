@@ -17,7 +17,7 @@ case $wahl in
     ;;
   2)
     echo "Starte Klassisches Modell..."
-    ./env_new/bin/python3 ./klassische_modelle/train.py
+    ./env_classic/bin/python3 ./klassische_modelle/train.py
     ;;
   *)
     echo "Abbruch."

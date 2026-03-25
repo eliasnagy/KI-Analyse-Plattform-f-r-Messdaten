@@ -20,6 +20,9 @@ EPOCHS = int(os.getenv("EPOCHS", 50))
 PATIENCE = int(os.getenv("PATIENCE", 10))
 NUM_WORKERS = int(os.getenv("NUM_WORKERS", 4))
 MODEL_PATH = os.getenv("MODEL_PATH", "bestes_modell.pth")
+TRAIN_DATA_C1 = os.getenv("TRAIN_DATA_C1", "trainings_daten/data_files/c1")
+TRAIN_DATA_C4 = os.getenv("TRAIN_DATA_C4", "trainings_daten/data_files/c4")
+VAL_DATA_C6 = os.getenv("VAL_DATA_C6", "trainings_daten/data_files/c6")
 
 # ==========================================
 # 1. Das KI-Modell definieren (Das "Gehirn")
@@ -72,8 +75,8 @@ if __name__ == "__main__":
     print(f"Training läuft auf: {device}")
 
     # --- TRAININGS-DATEN --- (c1, c4)
-    train_c1 = FraesenDataset('./trainings_daten/c1', window_size=WINDOW_SIZE, step_size=STEP_SIZE)
-    train_c4 = FraesenDataset('./trainings_daten/c4', window_size=WINDOW_SIZE, step_size=STEP_SIZE)
+    train_c1 = FraesenDataset(TRAIN_DATA_C1, window_size=WINDOW_SIZE, step_size=STEP_SIZE)
+    train_c4 = FraesenDataset(TRAIN_DATA_C4, window_size=WINDOW_SIZE, step_size=STEP_SIZE)
 
     # Wir müssen die Normalisierungs-Werte (Mean/Std) beider Trainingssets kombinieren.
     # Da sie ähnlich sein sollten, reicht es für den Anfang, einfach die von c1 als Basis zu nehmen 
@@ -87,7 +90,7 @@ if __name__ == "__main__":
 
     # --- VALIDIERUNGS-DATEN --- (c6)
     # WICHTIG: Wir übergeben die Normalisierungswerte aus dem Training!
-    datensatz_val = FraesenDataset('./trainings_daten/c6', window_size=WINDOW_SIZE, step_size=STEP_SIZE, global_mean=train_mean, global_std=train_std)
+    datensatz_val = FraesenDataset(VAL_DATA_C6, window_size=WINDOW_SIZE, step_size=STEP_SIZE, global_mean=train_mean, global_std=train_std)
     val_loader = DataLoader(datensatz_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
 
