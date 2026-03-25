@@ -1,20 +1,22 @@
 #!/bin/bash
 
-echo "Welches Programm möchtest du starten?"
-echo "1) Torch-Programm (NumPy 1.x)"
-echo "2) Neues Programm (NumPy 2.2.6)"
-read -p "Auswahl [1-2]: " wahl
+# Ermittelt den Ordner, in dem dieses Shell-Skript liegt
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+
+# Wechsle in diesen Ordner
+cd "$SCRIPT_DIR"
+
+echo "Welches Programm?"
+echo "1) Torch (NumPy 1.x)"
+echo "2) Neu (NumPy 2.x)"
+read -p "Auswahl: " wahl
 
 case $wahl in
   1)
-    echo "Starte Torch-Programm..."
-    ./env_torch/bin/python3 torch/train.py
+    # Jetzt sucht Python relativ zu SCRIPT_DIR
+    ./env_torch/bin/python3 ./torch/train.py
     ;;
   2)
-    echo "Starte neues Programm..."
-    ./env_new/bin/python3 klassische_modelle/train.py
-    ;;
-  *)
-    echo "Ungültige Auswahl."
+    ./env_new/bin/python3 ./klassische_modell/train.py
     ;;
 esac
