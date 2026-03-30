@@ -24,7 +24,7 @@ case $hauptwahl in
         ./env_classic/bin/python3 ./klassische_modelle/train.py --model $MODEL_TYPE
         ;;
       b)
-        ./env_classic/bin/python3 ./klassische_modelle/eval.py --model $MODEL_TYPE
+        ./env_classic/bin/python3 ./klassische_modelle/live.py --model $MODEL_TYPE
         ;;
       *) echo "Ungültige Unteroption.";;
     esac
@@ -42,7 +42,7 @@ case $hauptwahl in
         ./env_classic/bin/python3 ./klassische_modelle/train.py --model $MODEL_TYPE
         ;;
       b)
-        ./env_classic/bin/python3 ./klassische_modelle/eval.py --model $MODEL_TYPE
+        ./env_classic/bin/python3 ./klassische_modelle/live.py --model $MODEL_TYPE
         ;;
       *) echo "Ungültige Unteroption.";;
     esac
