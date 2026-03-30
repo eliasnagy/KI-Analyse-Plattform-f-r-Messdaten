@@ -4,6 +4,4 @@ __pycache__/
 numpy_files/
 *.zip
 *.pth
-env_classic/
-env_torch/
 output_files/
