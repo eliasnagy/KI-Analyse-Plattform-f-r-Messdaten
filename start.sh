@@ -51,7 +51,7 @@ case $hauptwahl in
   3)
     echo -e "\n--- TORCH 1D-CNN ---"
     echo "a) Training"
-    echo "b) GLive-Inferenz"
+    echo "b) Live-Inferenz"
     read -p "Wähle Unteroption [a-b]: " unterwahl
     case $unterwahl in
       a)
